@@ -16,9 +16,7 @@ import AdminNotices from './pages/admin/AdminNotices';
 import NoticeEditor from './pages/admin/NoticeEditor';
 import AdminEvents from './pages/admin/AdminEvents';
 import AdminGallery from './pages/admin/AdminGallery';
-import AdminMessages from './pages/admin/AdminMessages';
-import AdminSettings from './pages/admin/AdminSettings';
-import AdminHomepage from './pages/admin/AdminHomepage';
+import AdminVideos from './pages/admin/AdminVideos';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -53,10 +51,11 @@ createRoot(document.getElementById('root')!).render(
                   <Route path="notices/new" element={<NoticeEditor />} />
                   <Route path="notices/edit/:id" element={<NoticeEditor />} />
                   <Route path="events" element={<AdminEvents />} />
+                  <Route path="events/new" element={<EventEditor />} />
+                  <Route path="events/edit/:id" element={<EventEditor />} />
                   <Route path="gallery" element={<AdminGallery />} />
-                  <Route path="messages" element={<AdminMessages />} />
-                  <Route path="settings" element={<AdminSettings />} />
-                  <Route path="homepage" element={<AdminHomepage />} />
+                  <Route path="videos" element={<AdminVideos />} />
+                  <Route path="videos/new" element={<AdminVideos />} />
                   <Route path="*" element={<AdminDashboard />} />
                 </Route>
               </Routes>
@@ -67,3 +66,5 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>
 );
+
+import EventEditor from './pages/admin/EventEditor';
