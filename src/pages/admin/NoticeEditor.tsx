@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, Save, Loader2, Pin, Star } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Pin, Star, AlertCircle } from 'lucide-react';
 
 export default function NoticeEditor() {
   const { id } = useParams();
@@ -10,6 +10,7 @@ export default function NoticeEditor() {
 
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title_np: '',
@@ -28,8 +29,10 @@ export default function NoticeEditor() {
   }, [id]);
 
   const fetchNotice = async (noticeId: string) => {
-    const { data } = await supabase.from('cms_notices').select('*').eq('id', noticeId).single();
-    if (data) {
+    const { data, error } = await supabase.from('cms_notices').select('*').eq('id', noticeId).single();
+    if (error) {
+      setError(`Failed to load notice: ${error.message}`);
+    } else if (data) {
       setFormData({
         title_np: data.title_np || '',
         title_en: data.title_en || '',
@@ -46,21 +49,36 @@ export default function NoticeEditor() {
   };
 
   const handleSave = async () => {
-    if (!formData.title_np || !formData.content_np) {
-      alert('कृपया शीर्षक र सामग्री भर्नुहोस्।');
+    setError(null);
+
+    if (!formData.title_np) {
+      setError('कृपया शीर्षक (नेपाली) भर्नुहोस्।');
+      return;
+    }
+    if (!formData.content_np) {
+      setError('कृपया सामग्री (नेपाली) भर्नुहोस्।');
       return;
     }
 
     setSaving(true);
     try {
+      let result;
       if (isEditing) {
-        await supabase.from('cms_notices').update({ ...formData, updated_at: new Date().toISOString() }).eq('id', id);
+        result = await supabase.from('cms_notices').update({ ...formData, updated_at: new Date().toISOString() }).eq('id', id);
       } else {
-        await supabase.from('cms_notices').insert(formData);
+        result = await supabase.from('cms_notices').insert(formData);
       }
-      navigate('/main_box/notices');
-    } catch (error) {
-      console.error('Error:', error);
+
+      if (result.error) {
+        setError(`Failed to save: ${result.error.message}`);
+        console.error('Supabase error:', result.error);
+      } else {
+        navigate('/main_box/notices');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Error: ${errorMessage}`);
+      console.error('Save error:', err);
     } finally {
       setSaving(false);
     }
@@ -83,6 +101,17 @@ export default function NoticeEditor() {
           <span className="font-devanagari">{saving ? 'सेभ गर्दै...' : 'सेभ गर्नुहोस्'}</span>
         </button>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-devanagari text-red-700 font-medium">त्रुटि!</p>
+            <p className="text-red-600 text-sm mt-1">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       <div className="section-card p-6 space-y-5">

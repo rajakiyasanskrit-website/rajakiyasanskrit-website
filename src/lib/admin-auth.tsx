@@ -12,9 +12,9 @@ interface AdminAuthContextType {
   user: AdminUser | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; success: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null; success: boolean }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: Error | null; success: boolean }>;
+  resetPassword: (email: string) => Promise<{ error: string | null; success: boolean }>;
   isAdmin: boolean;
 }
 
@@ -31,59 +31,35 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        checkAdminStatus(session.user);
-      } else {
-        setLoading(false);
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          created_at: session.user.created_at,
+        });
+        setIsAdmin(true);
       }
+      setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       if (session?.user) {
-        await checkAdminStatus(session.user);
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          created_at: session.user.created_at,
+        });
+        setIsAdmin(true);
       } else {
         setUser(null);
         setIsAdmin(false);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const checkAdminStatus = async (authUser: User) => {
-    try {
-      // Check if user email matches admin domain or has admin role
-      const email = authUser.email || '';
-      const isAdminUser = email.includes('@gurukul.edu.np') || email.includes('@gurukul.com');
-
-      if (isAdminUser || process.env.NODE_ENV === 'development') {
-        setUser({
-          id: authUser.id,
-          email: authUser.email || '',
-          created_at: authUser.created_at,
-        });
-        setIsAdmin(true);
-
-        // Log admin session
-        await supabase.from('cms_admin_sessions').insert({
-          user_id: authUser.id,
-          ip_address: 'unknown',
-          user_agent: navigator.userAgent,
-        });
-      } else {
-        setUser(null);
-        setIsAdmin(false);
-      }
-    } catch (error) {
-      console.error('Admin check error:', error);
-      setUser(null);
-      setIsAdmin(false);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -93,43 +69,16 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        return { error, success: false };
-      }
-
-      // Log activity
-      if (data.user) {
-        await supabase.from('cms_activity_log').insert({
-          user_id: data.user.id,
-          action: 'login',
-          resource_type: 'auth',
-          resource_title: email,
-        });
+        return { error: error.message, success: false };
       }
 
       return { error: null, success: true };
     } catch (error) {
-      return { error: error as Error, success: false };
+      return { error: (error as Error).message, success: false };
     }
   };
 
   const signOut = async () => {
-    if (user) {
-      // Update session record
-      await supabase
-        .from('cms_admin_sessions')
-        .update({ logout_at: new Date().toISOString(), is_active: false })
-        .eq('user_id', user.id)
-        .eq('is_active', true);
-
-      // Log activity
-      await supabase.from('cms_activity_log').insert({
-        user_id: user.id,
-        action: 'logout',
-        resource_type: 'auth',
-        resource_title: user.email,
-      });
-    }
-
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -142,9 +91,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         redirectTo: `${window.location.origin}/main_box/reset-password`,
       });
 
-      return { error, success: !error };
+      return { error: error?.message || null, success: !error };
     } catch (error) {
-      return { error: error as Error, success: false };
+      return { error: (error as Error).message, success: false };
     }
   };
 

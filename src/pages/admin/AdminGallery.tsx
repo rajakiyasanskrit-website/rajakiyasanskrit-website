@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Folder, Image, Trash2, Upload, X, Loader2, ArrowLeft } from 'lucide-react';
+import { Plus, Folder, Image, Trash2, Upload, X, Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 
 interface Album {
   id: string;
@@ -24,55 +24,90 @@ export default function AdminGallery() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [showNewAlbumModal, setShowNewAlbumModal] = useState(false);
   const [newAlbumTitle, setNewAlbumTitle] = useState({ nepali: '', english: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchAlbums(); }, []);
 
   const fetchAlbums = async () => {
-    const { data } = await supabase.from('cms_albums').select('*').is('deleted_at', null).order('created_at', { ascending: false });
-    if (data) setAlbums(data);
-    setLoading(false);
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase.from('cms_albums').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+      if (error) setError(error.message);
+      else if (data) setAlbums(data);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const createAlbum = async () => {
-    if (!newAlbumTitle.nepali.trim()) return;
-    await supabase.from('cms_albums').insert({ title_np: newAlbumTitle.nepali, title_en: newAlbumTitle.english });
-    setShowNewAlbumModal(false);
-    setNewAlbumTitle({ nepali: '', english: '' });
-    fetchAlbums();
+    setError(null);
+    if (!newAlbumTitle.nepali.trim()) {
+      setError('कृपया एल्बमको नाम भर्नुहोस्।');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('cms_albums').insert({ title_np: newAlbumTitle.nepali, title_en: newAlbumTitle.english });
+      if (error) setError(error.message);
+      else {
+        setShowNewAlbumModal(false);
+        setNewAlbumTitle({ nepali: '', english: '' });
+        fetchAlbums();
+      }
+    } catch { setError('एल्बम बनाउन सकिएन।'); }
   };
 
   const deleteAlbum = async (albumId: string) => {
     if (!confirm('यो एल्बम र सबै फोटोहरू मेटाउने हो?')) return;
-    await supabase.from('cms_albums').update({ deleted_at: new Date().toISOString() }).eq('id', albumId);
+    const { error } = await supabase.from('cms_albums').update({ deleted_at: new Date().toISOString() }).eq('id', albumId);
+    if (error) setError(error.message);
     fetchAlbums();
   };
 
   const selectAlbum = async (album: Album) => {
     setSelectedAlbum(album);
-    const { data } = await supabase.from('cms_photos').select('*').eq('album_id', album.id).order('created_at');
-    if (data) setPhotos(data);
+    setError(null);
+    const { data, error } = await supabase.from('cms_photos').select('*').eq('album_id', album.id).order('created_at');
+    if (error) setError(error.message);
+    else if (data) setPhotos(data);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, albumId: string) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || !selectedAlbum) return;
 
-    const uploadedPhotos = [];
-    for (const file of Array.from(files)) {
-      uploadedPhotos.push({ album_id: albumId, image_url: URL.createObjectURL(file) });
-    }
+    setUploading(true);
+    setError(null);
+    try {
+      const uploadedPhotos = [];
+      for (const file of Array.from(files)) {
+        uploadedPhotos.push({ album_id: albumId, image_url: URL.createObjectURL(file) });
+      }
 
-    if (uploadedPhotos.length > 0) {
-      await supabase.from('cms_photos').insert(uploadedPhotos);
-      await supabase.from('cms_albums').update({ photos_count: photos.length + uploadedPhotos.length }).eq('id', albumId);
-      selectAlbum(selectedAlbum!);
+      if (uploadedPhotos.length > 0) {
+        const { error: insertError } = await supabase.from('cms_photos').insert(uploadedPhotos);
+        if (insertError) {
+          setError(insertError.message);
+        } else {
+          await supabase.from('cms_albums').update({ photos_count: photos.length + uploadedPhotos.length }).eq('id', albumId);
+          await selectAlbum(selectedAlbum);
+        }
+      }
+    } finally {
+      setUploading(false);
     }
   };
 
   const deletePhoto = async (photoId: string) => {
-    await supabase.from('cms_photos').delete().eq('id', photoId);
-    selectAlbum(selectedAlbum!);
+    setError(null);
+    const { error } = await supabase.from('cms_photos').delete().eq('id', photoId);
+    if (error) setError(error.message);
+    if (selectedAlbum) {
+      await supabase.from('cms_albums').update({ photos_count: Math.max(0, photos.length - 1) }).eq('id', selectedAlbum.id);
+      selectAlbum(selectedAlbum);
+    }
   };
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-saffron-500" /></div>;
@@ -87,11 +122,24 @@ export default function AdminGallery() {
             <span className="font-devanagari">एल्बमहरूमा फर्कनुहोस्</span>
           </button>
           <input type="file" accept="image/*" multiple className="hidden" ref={fileInputRef} onChange={(e) => handleFileUpload(e, selectedAlbum.id)} />
-          <button onClick={() => fileInputRef.current?.click()} className="btn-primary">
-            <Upload className="w-5 h-5" />
-            <span className="font-devanagari">फोटो अपलोड</span>
+          <button onClick={() => fileInputRef.current?.click()} className="btn-primary" disabled={uploading}>
+            {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+            <span className="font-devanagari">{uploading ? 'अपलोड गर्दै...' : 'फोटो अपलोड'}</span>
           </button>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <h1 className="font-devanagari text-3xl font-bold text-sandalwood-900">{selectedAlbum.title_np}</h1>
@@ -129,6 +177,20 @@ export default function AdminGallery() {
           <span className="font-devanagari">एल्बम थप्नुहोस्</span>
         </button>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-devanagari text-red-700 font-medium">त्रुटि!</p>
+            <p className="text-red-600 text-sm mt-1">{error}</p>
+          </div>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Create Album Modal */}
       {showNewAlbumModal && (

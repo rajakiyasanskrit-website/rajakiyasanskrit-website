@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, Save, Eye, Loader2, Upload, Image, X } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Upload, X, AlertCircle } from 'lucide-react';
 
 export default function EventEditor() {
   const { id } = useParams();
@@ -10,6 +10,7 @@ export default function EventEditor() {
 
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title_np: '',
@@ -32,8 +33,10 @@ export default function EventEditor() {
   }, [id]);
 
   const fetchEvent = async (eventId: string) => {
-    const { data } = await supabase.from('cms_events').select('*').eq('id', eventId).single();
-    if (data) {
+    const { data, error } = await supabase.from('cms_events').select('*').eq('id', eventId).single();
+    if (error) {
+      setError(`Failed to load event: ${error.message}`);
+    } else if (data) {
       setFormData({
         title_np: data.title_np || '',
         title_en: data.title_en || '',
@@ -52,8 +55,14 @@ export default function EventEditor() {
   };
 
   const handleSave = async () => {
-    if (!formData.title_np || !formData.event_date) {
-      alert('कृपया शीर्षक र मिति भर्नुहोस्।');
+    setError(null);
+
+    if (!formData.title_np) {
+      setError('कृपया शीर्षक (नेपाली) भर्नुहोस्।');
+      return;
+    }
+    if (!formData.event_date) {
+      setError('कृपया मिति भर्नुहोस्।');
       return;
     }
 
@@ -64,14 +73,23 @@ export default function EventEditor() {
         poster_url: posterFile ? URL.createObjectURL(posterFile) : formData.poster_url,
       };
 
+      let result;
       if (isEditing) {
-        await supabase.from('cms_events').update({ ...eventData, updated_at: new Date().toISOString() }).eq('id', id);
+        result = await supabase.from('cms_events').update({ ...eventData, updated_at: new Date().toISOString() }).eq('id', id);
       } else {
-        await supabase.from('cms_events').insert(eventData);
+        result = await supabase.from('cms_events').insert(eventData);
       }
-      navigate('/main_box/events');
-    } catch (error) {
-      console.error('Error:', error);
+
+      if (result.error) {
+        setError(`Failed to save: ${result.error.message}`);
+        console.error('Supabase error:', result.error);
+      } else {
+        navigate('/main_box/events');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Error: ${errorMessage}`);
+      console.error('Save error:', err);
     } finally {
       setSaving(false);
     }
@@ -94,6 +112,17 @@ export default function EventEditor() {
           <span className="font-devanagari">{saving ? 'सेभ गर्दै...' : 'सेभ गर्नुहोस्'}</span>
         </button>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-devanagari text-red-700 font-medium">त्रुटि!</p>
+            <p className="text-red-600 text-sm mt-1">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       <div className="section-card p-6 space-y-5">

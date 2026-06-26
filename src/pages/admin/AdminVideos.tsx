@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Video, Trash2, Youtube, Loader2 } from 'lucide-react';
+import { Plus, Video, Trash2, Star, Loader2, AlertCircle, X } from 'lucide-react';
 
 interface Video {
   id: string;
@@ -18,6 +18,8 @@ export default function AdminVideos() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [newVideo, setNewVideo] = useState({
     title_np: '',
@@ -32,24 +34,38 @@ export default function AdminVideos() {
   }, []);
 
   const fetchVideos = async () => {
-    const { data } = await supabase.from('cms_videos').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+    setLoading(true);
+    const { data, error } = await supabase.from('cms_videos').select('*').is('deleted_at', null).order('created_at', { ascending: false });
     if (data) setVideos(data);
+    if (error) setError(`Failed to load videos: ${error.message}`);
     setLoading(false);
   };
 
   const addVideo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVideo.title_np || !newVideo.video_url) return;
+    setError(null);
+
+    if (!newVideo.title_np || !newVideo.video_url) {
+      setError('कृपया शीर्षक र URL भर्नुहोस्।');
+      return;
+    }
 
     setSaving(true);
     try {
-      await supabase.from('cms_videos').insert({
+      const { error } = await supabase.from('cms_videos').insert({
         ...newVideo,
         thumbnail_url: getYouTubeThumbnail(newVideo.video_url),
       });
-      setShowAddModal(false);
-      setNewVideo({ title_np: '', title_en: '', video_url: '', video_type: 'youtube', status: 'published' });
-      fetchVideos();
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess('भिडियो थपियो!');
+        setTimeout(() => setSuccess(null), 3000);
+        setShowAddModal(false);
+        setNewVideo({ title_np: '', title_en: '', video_url: '', video_type: 'youtube', status: 'published' });
+        fetchVideos();
+      }
     } finally {
       setSaving(false);
     }
@@ -57,12 +73,14 @@ export default function AdminVideos() {
 
   const deleteVideo = async (id: string) => {
     if (!confirm('यो भिडियो मेटाउने हो?')) return;
-    await supabase.from('cms_videos').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('cms_videos').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    if (error) setError(error.message);
     fetchVideos();
   };
 
   const toggleFeatured = async (video: Video) => {
-    await supabase.from('cms_videos').update({ is_featured: !video.is_featured }).eq('id', video.id);
+    const { error } = await supabase.from('cms_videos').update({ is_featured: !video.is_featured }).eq('id', video.id);
+    if (error) setError(error.message);
     fetchVideos();
   };
 
@@ -85,13 +103,34 @@ export default function AdminVideos() {
         </button>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Success Display */}
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 text-green-600">
+          <Plus className="w-5 h-5" />
+          <p className="text-sm">{success}</p>
+        </div>
+      )}
+
       {/* Add Video Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-                <Youtube className="w-6 h-6 text-white" />
+                <Video className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-devanagari text-xl font-bold text-sandalwood-900">नयाँ भिडियो</h3>
             </div>
@@ -136,12 +175,10 @@ export default function AdminVideos() {
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <a href={video.video_url} target="_blank" rel="noopener noreferrer" className="p-4 bg-red-500 text-white rounded-full">
-                    <Youtube className="w-8 h-8" />
-                  </a>
+                  <a href={video.video_url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-red-500 text-white rounded-lg font-devanagari text-sm">Play</a>
                 </div>
                 <button onClick={() => toggleFeatured(video)} className={`absolute top-2 right-2 p-2 rounded-lg transition-colors ${video.is_featured ? 'bg-amber-500 text-white' : 'bg-white/80 text-sandalwood-600 hover:bg-amber-100'}`}>
-                  <Plus className="w-4 h-4" />
+                  <Star className="w-4 h-4" />
                 </button>
               </div>
               <div className="p-4">

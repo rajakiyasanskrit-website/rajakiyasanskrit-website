@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../lib/admin-auth';
+import { supabase } from '../../lib/supabase';
 import {
   Eye,
   EyeOff,
-  Lotus,
   Mail,
   Lock,
   AlertCircle,
   Loader2,
   ArrowLeft,
   CheckCircle,
+  Plus,
 } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -21,6 +22,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [signUpMode, setSignUpMode] = useState(false);
 
   const { signIn, resetPassword } = useAdminAuth();
   const navigate = useNavigate();
@@ -31,21 +33,36 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      const { error, success } = await signIn(email, password);
+      if (signUpMode) {
+        // Sign up new admin
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          setError('गलत ईमेल वा पासवर्ड। कृपया पुनः प्रयास गर्नुहोस्।');
-        } else if (error.message.includes('Email not confirmed')) {
-          setError('ईमेल पुष्टि भएको छैन। कृपया ईमेल जाँच गर्नुहोस्।');
-        } else {
+        if (error) {
           setError(error.message);
+        } else {
+          setError('');
+          alert('Account created! Please check your email to confirm, then login.');
+          setSignUpMode(false);
         }
-      } else if (success) {
-        navigate('/main_box/dashboard');
+      } else {
+        // Login
+        const { error, success } = await signIn(email, password);
+
+        if (error) {
+          if (error.includes('Invalid login credentials')) {
+            setError('गलत ईमेल वा पासवर्ड।');
+          } else {
+            setError(error);
+          }
+        } else if (success) {
+          navigate('/main_box/dashboard');
+        }
       }
-    } catch {
-      setError('सर्भर त्रुटि। कृपया पछि पुनः प्रयास गर्नुहोस्।');
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -62,7 +79,7 @@ export default function AdminLoginPage() {
         setResetSuccess(true);
       }
     } catch {
-      setError('पासवर्ड रिसेट गर्न सकिएन। कृपया पुनः प्रयास गर्नुहोस्।');
+      setError('पासवर्ड रिसेट गर्न सकिएन।');
     } finally {
       setLoading(false);
     }
@@ -85,19 +102,9 @@ export default function AdminLoginPage() {
             <div className="w-16 h-16 bg-gradient-to-br from-gold-400 to-saffron-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
-            <h2 className="font-devanagari text-2xl font-bold text-sandalwood-900 mb-2">
-              ईमेल पठाइयो!
-            </h2>
-            <p className="font-devanagari text-sandalwood-600 mb-6">
-              पासवर्ड रिसेट लिङ्क तपाईंको ईमेलमा पठाइएको छ। कृपया ईमेल जाँच गर्नुहोस्।
-            </p>
-            <button
-              onClick={() => {
-                setResetMode(false);
-                setResetSuccess(false);
-              }}
-              className="font-devanagari text-saffron-600 hover:text-saffron-700 font-medium"
-            >
+            <h2 className="font-devanagari text-2xl font-bold text-sandalwood-900 mb-2">ईमेल पठाइयो!</h2>
+            <p className="font-devanagari text-sandalwood-600 mb-6">पासवर्ड रिसेट लिङ्क तपाईंको ईमेलमा पठाइएको छ।</p>
+            <button onClick={() => { setResetMode(false); setResetSuccess(false); }} className="font-devanagari text-saffron-600 hover:text-saffron-700 font-medium">
               लगइनमा फर्कनुहोस्
             </button>
           </div>
@@ -112,8 +119,6 @@ export default function AdminLoginPage() {
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 left-20 w-32 h-32 border border-gold-400 rounded-full" />
         <div className="absolute bottom-20 right-20 w-48 h-48 border border-saffron-400 rounded-full" />
-        <div className="absolute top-1/2 left-10 w-24 h-24 border border-maroon-400 rounded-full" />
-        <div className="absolute top-10 right-1/4 w-16 h-16 border border-gold-400 rounded-full" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
@@ -122,36 +127,30 @@ export default function AdminLoginPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-saffron-500 to-maroon-600 rounded-2xl shadow-2xl mb-4">
             <LotusIcon className="w-10 h-10 text-white" />
           </div>
-          <h1 className="font-devanagari text-3xl font-bold text-white mb-2">
-            राजकीय संस्कृत गुरुकुल
-          </h1>
-          <p className="font-english text-cream-300 text-sm">
-            Admin Dashboard
-          </p>
+          <h1 className="font-devanagari text-3xl font-bold text-white mb-2">राजकीय संस्कृत गुरुकुल</h1>
+          <p className="font-english text-cream-300 text-sm">Admin Dashboard</p>
         </div>
 
-        {/* Login Form */}
+        {/* Form Card */}
         <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
           <h2 className="font-devanagari text-2xl font-bold text-sandalwood-900 text-center mb-2">
-            {resetMode ? 'पासवर्ड रिसेट' : 'स्वागतम्'}
+            {resetMode ? 'पासवर्ड रिसेट' : signUpMode ? 'Admin खाता बनाउनुहोस्' : 'स्वागतम्'}
           </h2>
           <p className="font-devanagari text-sandalwood-500 text-center mb-6">
-            {resetMode ? 'आफ्नो ईमेल प्रविष्ट गर्नुहोस्' : 'ड्यासबोर्डमा प्रवेश गर्नुहोस्'}
+            {resetMode ? 'आफ्नो ईमेल प्रविष्ट गर्नुहोस्' : signUpMode ? '新 admin खाता बनाउनुहोस्' : 'ड्यासबोर्डमा प्रवेश गर्नुहोस्'}
           </p>
 
           {error && (
-            <div className="mb-4 p-4 bg-temple-50 border border-temple-200 rounded-xl flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-temple-500 flex-shrink-0 mt-0.5" />
-              <p className="font-devanagari text-sm text-temple-600">{error}</p>
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="font-devanagari text-sm text-red-600">{error}</p>
             </div>
           )}
 
           <form onSubmit={resetMode ? handleResetPassword : handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
-              <label className="block font-devanagari text-sm font-medium text-sandalwood-700 mb-2">
-                ईमेल
-              </label>
+              <label className="block font-devanagari text-sm font-medium text-sandalwood-700 mb-2">ईमेल</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-sandalwood-400" />
                 <input
@@ -165,12 +164,10 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {/* Password (only for login) */}
+            {/* Password */}
             {!resetMode && (
               <div>
-                <label className="block font-devanagari text-sm font-medium text-sandalwood-700 mb-2">
-                  पासवर्ड
-                </label>
+                <label className="block font-devanagari text-sm font-medium text-sandalwood-700 mb-2">पासवर्ड</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-sandalwood-400" />
                   <input
@@ -179,6 +176,7 @@ export default function AdminLoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
+                    minLength={signUpMode ? 6 : 1}
                     className="w-full pl-12 pr-12 py-3 border border-sandalwood-200 rounded-xl focus:ring-2 focus:ring-saffron-300 focus:border-saffron-400 font-english text-sandalwood-900 placeholder:text-sandalwood-300"
                   />
                   <button
@@ -189,6 +187,9 @@ export default function AdminLoginPage() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {signUpMode && (
+                  <p className="text-xs text-sandalwood-500 mt-1">Minimum 6 characters</p>
+                )}
               </div>
             )}
 
@@ -204,28 +205,39 @@ export default function AdminLoginPage() {
                   <span>प्रतीक्षा गर्नुहोस्...</span>
                 </>
               ) : (
-                <span>{resetMode ? 'रिसेट लिङ्क पठाउनुहोस्' : 'लगइन गर्नुहोस्'}</span>
+                <span>{resetMode ? 'रिसेट लिङ्क पठाउनुहोस्' : signUpMode ? 'खाता बनाउनुहोस्' : 'लगइन गर्नुहोस्'}</span>
               )}
             </button>
           </form>
 
-          {/* Toggle Reset Mode */}
-          <div className="mt-6 text-center">
+          {/* Toggle Modes */}
+          <div className="mt-6 text-center space-y-2">
             {resetMode ? (
-              <button
-                onClick={() => setResetMode(false)}
-                className="font-devanagari text-sm text-sandalwood-600 hover:text-saffron-600 flex items-center justify-center gap-2 mx-auto"
-              >
+              <button onClick={() => setResetMode(false)} className="font-devanagari text-sm text-sandalwood-600 hover:text-saffron-600 flex items-center justify-center gap-2 mx-auto">
                 <ArrowLeft className="w-4 h-4" />
                 लगइनमा फर्कनुहोस्
               </button>
             ) : (
-              <button
-                onClick={() => setResetMode(true)}
-                className="font-devanagari text-sm text-sandalwood-600 hover:text-saffron-600"
-              >
-                पासवर्ड भुल्नुभयो?
-              </button>
+              <>
+                <button onClick={() => setSignUpMode(!signUpMode)} className="w-full font-devanagari text-sm text-sandalwood-600 hover:text-saffron-600 flex items-center justify-center gap-2">
+                  {signUpMode ? (
+                    <>
+                      <ArrowLeft className="w-4 h-4" />
+                      लगइनमा फर्कनुहोस्
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      नयाँ Admin खाता बनाउनुहोस्
+                    </>
+                  )}
+                </button>
+                {!signUpMode && (
+                  <button onClick={() => setResetMode(true)} className="font-devanagari text-sm text-sandalwood-600 hover:text-saffron-600">
+                    पासवर्ड भुल्नुभयो?
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
