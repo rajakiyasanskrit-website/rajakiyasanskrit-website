@@ -15,7 +15,24 @@ import {
   Search,
   Filter,
 } from 'lucide-react';
-import { supabase, type Notice } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
+
+interface CMSNotice {
+  id: string;
+  title_np: string;
+  title_en: string | null;
+  content_np: string;
+  content_en: string | null;
+  category: string;
+  priority: string;
+  status: string;
+  is_pinned: boolean;
+  is_featured: boolean;
+  publish_date: string;
+  expiry_date: string | null;
+  pdf_url: string | null;
+  created_at: string;
+}
 
 const MandalaSVG = ({ className = '', size = 100 }: { className?: string; size?: number }) => (
   <svg viewBox="0 0 100 100" width={size} height={size} className={`mandala-rotate ${className}`}>
@@ -72,7 +89,7 @@ const priorityConfig = {
 };
 
 const NoticesPage = () => {
-  const [notices, setNotices] = useState<Notice[]>([]);
+  const [notices, setNotices] = useState<CMSNotice[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [expandedNotice, setExpandedNotice] = useState<string | null>(null);
@@ -80,19 +97,19 @@ const NoticesPage = () => {
 
   useEffect(() => {
     const fetchNotices = async () => {
-      let query = supabase.from('notices').select('*');
+      let query = supabase.from('cms_notices').select('*').eq('status', 'published').is('deleted_at', null);
       if (selectedPriority !== 'all') query = query.eq('priority', selectedPriority);
       if (searchQuery) query = query.ilike('title_np', `%${searchQuery}%`);
-      const { data } = await query.order('created_at', { ascending: false });
+      const { data } = await query.order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
       if (data) setNotices(data);
       setLoading(false);
     };
     fetchNotices();
   }, [selectedPriority, searchQuery]);
 
-  const activeNotices = notices.filter(n => n.is_active && (!n.expiry_date || new Date(n.expiry_date) > new Date()));
-  const archivedNotices = notices.filter(n => !n.is_active || (n.expiry_date && new Date(n.expiry_date) <= new Date()));
-  const pinnedNotices = activeNotices.filter(n => n.priority === 'high').slice(0, 2);
+  const activeNotices = notices.filter(n => !n.expiry_date || new Date(n.expiry_date) > new Date());
+  const archivedNotices = notices.filter(n => n.expiry_date && new Date(n.expiry_date) <= new Date());
+  const pinnedNotices = activeNotices.filter(n => n.is_pinned).slice(0, 2);
 
   return (
     <>
