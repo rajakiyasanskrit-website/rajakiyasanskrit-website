@@ -1,19 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Building2,
-  Star,
-  Users,
-  BookOpen,
-  LotusIcon,
   Heart,
-  Home,
-  GraduationCap,
   Scroll,
   Flame,
   Sparkles,
   Clock,
-  MapPin,
   Phone,
   ArrowRight,
 } from 'lucide-react';
@@ -29,14 +21,7 @@ const MandalaSVG = ({ className = '', size = 100 }: { className?: string; size?:
   </svg>
 );
 
-const DiyaIcon = ({ className = '' }: { className?: string }) => (
-  <svg viewBox="0 0 40 50" className={`diya-glow ${className}`} fill="currentColor">
-    <ellipse cx="20" cy="38" rx="16" ry="8" fill="currentColor" opacity="0.9" />
-    <ellipse cx="20" cy="35" rx="12" ry="6" className="fill-gold-400" />
-    <path d="M18 20 Q18 10 20 5 Q22 10 22 20" className="fill-saffron-400" />
-    <circle cx="20" cy="3" r="3" className="fill-gold-400" opacity="0.8" />
-  </svg>
-);
+
 
 const LotusIconComponent = ({ className = '' }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>

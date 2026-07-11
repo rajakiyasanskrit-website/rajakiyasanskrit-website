@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Plus, Calendar, Trash2, Edit2, Star, Image } from 'lucide-react';
+import { Plus, Calendar, Trash2, Star, Image } from 'lucide-react';
 
 interface Event {
   id: string;

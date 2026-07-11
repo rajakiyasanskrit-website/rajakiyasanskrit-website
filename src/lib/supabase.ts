@@ -17,24 +17,38 @@ export type Event = {
   description_en: string | null;
   event_date: string;
   event_time: string | null;
-  location: string | null;
-  image_url: string | null;
+  location_np: string | null;
+  location_en: string | null;
+  poster_url: string | null;
   category: string;
   is_featured: boolean;
+  status: string;
   created_at: string;
 };
 
 export type GalleryImage = {
   id: string;
+  album_id: string | null;
+  caption_np: string | null;
+  caption_en: string | null;
+  image_url: string;
+  thumbnail_url: string | null;
+  alt_text: string | null;
+  display_order: number;
+  created_at: string;
+  
+  // For UI convenience when joining with albums
+  title_np?: string;
+  category?: string;
+};
+
+export type Album = {
+  id: string;
   title_np: string;
   title_en: string | null;
   description_np: string | null;
-  description_en: string | null;
-  image_url: string;
-  category: string;
-  event_id: string | null;
-  is_featured: boolean;
-  display_order: number;
+  cover_image_url: string | null;
+  photos_count: number;
   created_at: string;
 };
 

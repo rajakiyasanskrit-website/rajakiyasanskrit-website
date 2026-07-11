@@ -14,15 +14,13 @@ import {
   Building2,
   MapPin,
   AlertCircle,
-  Quote,
   Star,
-  Flame,
   ArrowRight,
   Calendar,
   Image,
   Newspaper,
 } from 'lucide-react';
-import { supabase, type Event, type GalleryImage, type Notice } from '../lib/supabase';
+import { supabase, type Event, type Notice } from '../lib/supabase';
 
 // Decorative Elements
 const DiyaIcon = ({ className = '' }: { className?: string }) => (
@@ -315,13 +313,18 @@ const EventsPreview = () => {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const { data } = await supabase
-        .from('events')
+      const { data, error } = await supabase
+        .from('cms_events')
         .select('*')
         .eq('is_featured', true)
+        .is('deleted_at', null)
         .order('event_date', { ascending: true })
         .limit(3);
-      if (data) setEvents(data);
+      if (error) {
+        console.error('Error fetching events:', error);
+      } else if (data) {
+        setEvents(data);
+      }
       setLoading(false);
     };
     fetchEvents();
@@ -352,8 +355,8 @@ const EventsPreview = () => {
               {events.map(event => (
                 <div key={event.id} className="section-card overflow-hidden group hover:shadow-2xl transition-all duration-500">
                   <div className="relative h-48 bg-gradient-to-br from-saffron-100 to-gold-100 overflow-hidden">
-                    {event.image_url ? (
-                      <img src={event.image_url} alt={event.title_np} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    {event.poster_url ? (
+                      <img src={event.poster_url} alt={event.title_np} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Bell className="w-16 h-16 text-saffron-200" />
@@ -372,10 +375,10 @@ const EventsPreview = () => {
                     </div>
                     <h3 className="font-devanagari text-xl font-bold text-sandalwood-900 mb-2">{event.title_np}</h3>
                     <p className="font-devanagari text-sm text-sandalwood-600 line-clamp-2">{event.description_np || event.title_en}</p>
-                    {event.location && (
+                    {event.location_np && (
                       <div className="mt-3 flex items-center gap-2 text-xs text-sandalwood-500">
                         <MapPin className="w-4 h-4" />
-                        <span className="font-devanagari">{event.location}</span>
+                        <span className="font-devanagari">{event.location_np}</span>
                       </div>
                     )}
                   </div>
@@ -405,12 +408,18 @@ const NoticesPreview = () => {
 
   useEffect(() => {
     const fetchNotices = async () => {
-      const { data } = await supabase
-        .from('notices')
+      const { data, error } = await supabase
+        .from('cms_notices')
         .select('*')
+        .eq('status', 'published')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(2);
-      if (data) setNotices(data);
+      if (error) {
+        console.error('Error fetching notices:', error);
+      } else if (data) {
+        setNotices(data);
+      }
       setLoading(false);
     };
     fetchNotices();

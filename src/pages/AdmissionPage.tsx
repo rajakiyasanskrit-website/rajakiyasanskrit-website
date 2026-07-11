@@ -4,16 +4,13 @@ import {
   GraduationCap,
   Users,
   BookOpen,
-  Sparkles,
   ArrowRight,
   Phone,
   CheckCircle,
   MapPin,
   Calendar,
   AlertCircle,
-  ChevronRight,
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 
 const MandalaSVG = ({ className = '', size = 100 }: { className?: string; size?: number }) => (
   <svg viewBox="0 0 100 100" width={size} height={size} className={`mandala-rotate ${className}`}>

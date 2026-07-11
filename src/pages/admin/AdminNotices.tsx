@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Plus, FileText, Trash2, Edit2, Pin, Star, Search, Loader2 } from 'lucide-react';
+import { Plus, FileText, Trash2, Edit2, Pin, Star, Search } from 'lucide-react';
 
 interface Notice {
   id: string;

@@ -4,7 +4,6 @@ import {
   Menu,
   X,
   Phone,
-  Lotus as LotusIcon,
   Home,
   Calendar,
   Image,

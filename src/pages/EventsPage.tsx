@@ -5,12 +5,9 @@ import {
   MapPin,
   Clock,
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
   Flame,
   BookOpen,
   Users,
-  Building2,
   Star,
   Bell,
 } from 'lucide-react';
@@ -28,14 +25,7 @@ const MandalaSVG = ({ className = '', size = 100 }: { className?: string; size?:
   </svg>
 );
 
-const LotusIcon = ({ className = '' }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
-    <path d="M12 2C12 2 8 6 8 10C8 12 10 14 12 14C14 14 16 12 16 10C16 6 12 2 12 2Z" />
-    <path d="M12 14C12 14 6 12 4 14C2 16 3 20 6 20C8 20 10 18 12 14Z" />
-    <path d="M12 14C12 14 18 12 20 14C22 16 21 20 18 20C16 20 14 18 12 14Z" />
-    <path d="M12 14V22" />
-  </svg>
-);
+
 
 const useScrollReveal = () => {
   const ref = useRef<HTMLDivElement>(null);
@@ -69,13 +59,16 @@ const EventsPage = () => {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const now = new Date().toISOString().split('T')[0];
-      let query = supabase.from('events').select('*').order('event_date', { ascending: true });
+      let query = supabase.from('cms_events').select('*').is('deleted_at', null).order('event_date', { ascending: true });
       if (selectedCategory !== 'all') query = query.eq('category', selectedCategory);
       if (selectedYear !== 'all') query = query.gte('event_date', `${selectedYear}-01-01`).lte('event_date', `${selectedYear}-12-31`);
 
-      const { data } = await query;
-      if (data) setEvents(data);
+      const { data, error } = await query;
+      if (error) {
+        console.error('Error fetching events:', error);
+      } else if (data) {
+        setEvents(data);
+      }
       setLoading(false);
     };
     fetchEvents();
@@ -163,7 +156,7 @@ const EventsPage = () => {
                       <p className="font-devanagari text-sm text-sandalwood-600 mb-4 line-clamp-2">{event.description_np}</p>
                       <div className="space-y-2 text-xs text-sandalwood-500">
                         {event.event_time && (<div className="flex items-center gap-2"><Clock className="w-3.5 h-3.5" /><span className="font-devanagari">{event.event_time}</span></div>)}
-                        {event.location && (<div className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /><span className="font-devanagari">{event.location}</span></div>)}
+                        {event.location_np && (<div className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /><span className="font-devanagari">{event.location_np}</span></div>)}
                       </div>
                     </div>
                   );
@@ -192,7 +185,7 @@ const EventsPage = () => {
                   return (
                     <div key={event.id} className="section-card overflow-hidden group hover:shadow-2xl transition-all duration-500" style={{ animationDelay: `${i * 100}ms` }}>
                       <div className="relative h-48 bg-gradient-to-br from-sandalwood-200 to-cream-200 overflow-hidden">
-                        {event.image_url ? (<img src={event.image_url} alt={event.title_np} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />) : (
+                        {event.poster_url ? (<img src={event.poster_url} alt={event.title_np} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-saffron-100 via-gold-100 to-maroon-100">
                             <Icon className="w-20 h-20 text-saffron-200" />
                           </div>
@@ -223,10 +216,10 @@ const EventsPage = () => {
                             </div>
                           )}
                         </div>
-                        {event.location && (
+                        {event.location_np && (
                           <div className="mt-3 pt-3 border-t border-sandalwood-100 flex items-center gap-2 text-xs text-sandalwood-500">
                             <MapPin className="w-3.5 h-3.5" />
-                            <span className="font-devanagari">{event.location}</span>
+                            <span className="font-devanagari">{event.location_np}</span>
                           </div>
                         )}
                       </div>

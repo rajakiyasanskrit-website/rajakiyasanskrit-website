@@ -2,14 +2,12 @@ import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Bell,
-  AlertCircle,
   AlertTriangle,
   Info,
   Calendar,
   ChevronDown,
   ChevronUp,
   ArrowRight,
-  Clock,
   Pin,
   Archive,
   Search,
@@ -100,8 +98,12 @@ const NoticesPage = () => {
       let query = supabase.from('cms_notices').select('*').eq('status', 'published').is('deleted_at', null);
       if (selectedPriority !== 'all') query = query.eq('priority', selectedPriority);
       if (searchQuery) query = query.ilike('title_np', `%${searchQuery}%`);
-      const { data } = await query.order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
-      if (data) setNotices(data);
+      const { data, error } = await query.order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error fetching notices:', error);
+      } else if (data) {
+        setNotices(data);
+      }
       setLoading(false);
     };
     fetchNotices();

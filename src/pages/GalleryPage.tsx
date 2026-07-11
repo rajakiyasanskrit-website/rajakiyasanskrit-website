@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Image, X, ChevronLeft, ChevronRight, Grid3X3, Image as ImageIcon, ChevronDown, Heart, Share2 } from 'lucide-react';
+import { Image, X, ChevronLeft, ChevronRight, Grid3X3, Image as ImageIcon, Heart } from 'lucide-react';
 import { supabase, type GalleryImage } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 
@@ -33,23 +33,32 @@ const Section = ({ children, delay = 0 }: { children: React.ReactNode; delay?: n
 const GalleryPage = () => {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [lightBoxImage, setLightBoxImage] = useState<GalleryImage | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('grid');
 
   useEffect(() => {
     const fetchGallery = async () => {
-      let query = supabase.from('gallery').select('*');
-      if (selectedCategory !== 'all') query = query.eq('category', selectedCategory);
-      const { data } = await query.order('display_order', { ascending: true }).order('created_at', { ascending: false });
-      if (data) setImages(data);
+      const { data, error } = await supabase
+        .from('cms_photos')
+        .select('*, album:cms_albums(title_np)')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching photos:', error);
+      } else if (data) {
+        const mappedData = data.map(p => ({
+          ...p,
+          title_np: p.caption_np || 'Photo',
+          category: (p.album as { title_np: string })?.title_np || 'General'
+        }));
+        setImages(mappedData as unknown as GalleryImage[]);
+      }
       setLoading(false);
     };
     fetchGallery();
-  }, [selectedCategory]);
+  }, []);
 
-  const categories = ['all', 'temple', 'students', 'ceremony', 'general'];
-  const featuredImage = images.find(img => img.is_featured) || images[0];
+  const featuredImage = images[0]; // Simplified feature image logic for now
 
   // Lightbox navigation
   const navigateLightbox = (direction: 'prev' | 'next') => {
@@ -71,6 +80,7 @@ const GalleryPage = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightBoxImage, images]);
 
   return (
@@ -111,8 +121,7 @@ const GalleryPage = () => {
                     <span className="px-3 py-1 bg-gold-500/20 border border-gold-400/30 text-gold-400 text-xs font-english rounded-full backdrop-blur-sm">FEATURED</span>
                   </div>
                   <h2 className="font-devanagari text-2xl md:text-4xl font-bold text-cream-50">{featuredImage.title_np}</h2>
-                  {featuredImage.title_en && <p className="font-english text-cream-300 italic">{featuredImage.title_en}</p>}
-                  {featuredImage.description_np && <p className="font-devanagari text-cream-200/80 text-sm mt-2 max-w-xl">{featuredImage.description_np}</p>}
+                  {featuredImage.caption_en && <p className="font-english text-cream-300 italic">{featuredImage.caption_en}</p>}
                 </div>
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors">
@@ -131,11 +140,9 @@ const GalleryPage = () => {
           <Section>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-2">
-                {categories.map(cat => (
-                  <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-full text-sm font-devanagari transition-all ${selectedCategory === cat ? 'bg-gold-500 text-sandalwood-900 font-bold shadow-lg' : 'bg-sandalwood-800 text-cream-200 hover:bg-sandalwood-700'}`}>
-                    {cat === 'all' ? 'सबै' : cat === 'temple' ? 'मन्दिर' : cat === 'students' ? 'विद्यार्थी' : cat === 'ceremony' ? 'अनुष्ठान' : 'सामान्य'}
-                  </button>
-                ))}
+                <button className={`px-4 py-2 rounded-full text-sm font-devanagari transition-all bg-gold-500 text-sandalwood-900 font-bold shadow-lg`}>
+                  सबै फोटोहरू
+                </button>
               </div>
               <div className="flex items-center gap-1 bg-sandalwood-800 rounded-lg p-1">
                 <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-saffron-500 text-white' : 'text-cream-300 hover:text-white'}`}>
@@ -212,8 +219,7 @@ const GalleryPage = () => {
             <img src={lightBoxImage.image_url} alt={lightBoxImage.title_np} className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl" />
             <div className="text-center mt-4">
               <h3 className="font-devanagari text-xl font-bold text-cream-50">{lightBoxImage.title_np}</h3>
-              {lightBoxImage.title_en && <p className="font-english text-cream-300 italic">{lightBoxImage.title_en}</p>}
-              {lightBoxImage.description_np && <p className="font-devanagari text-cream-200/70 text-sm mt-2">{lightBoxImage.description_np}</p>}
+              {lightBoxImage.caption_en && <p className="font-english text-cream-300 italic">{lightBoxImage.caption_en}</p>}
             </div>
           </div>
         </div>

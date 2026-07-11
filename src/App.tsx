@@ -16,7 +16,6 @@ import {
   Quote,
   Star,
   Flame,
-  Flower2,
 } from 'lucide-react';
 
 // Custom Lotus Icon
