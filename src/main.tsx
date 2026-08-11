@@ -17,6 +17,8 @@ import NoticeEditor from './pages/admin/NoticeEditor';
 import AdminEvents from './pages/admin/AdminEvents';
 import AdminGallery from './pages/admin/AdminGallery';
 import AdminVideos from './pages/admin/AdminVideos';
+import AdminHeroImages from './pages/admin/AdminHeroImages';
+import EventEditor from './pages/admin/EventEditor';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -56,6 +58,7 @@ createRoot(document.getElementById('root')!).render(
                   <Route path="gallery" element={<AdminGallery />} />
                   <Route path="videos" element={<AdminVideos />} />
                   <Route path="videos/new" element={<AdminVideos />} />
+                  <Route path="hero-images" element={<AdminHeroImages />} />
                   <Route path="*" element={<AdminDashboard />} />
                 </Route>
               </Routes>

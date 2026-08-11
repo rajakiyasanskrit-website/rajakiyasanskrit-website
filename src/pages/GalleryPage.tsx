@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Image, X, ChevronLeft, ChevronRight, Grid3X3, Image as ImageIcon, Heart } from 'lucide-react';
-import { supabase, type GalleryImage } from '../lib/supabase';
+import { supabase, type GalleryImage, type WebsiteSettings } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 
 const MandalaSVG = ({ className = '', size = 100 }: { className?: string; size?: number }) => (
@@ -35,6 +35,7 @@ const GalleryPage = () => {
   const [loading, setLoading] = useState(true);
   const [lightBoxImage, setLightBoxImage] = useState<GalleryImage | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('grid');
+  const [settings, setSettings] = useState<WebsiteSettings | null>(null);
 
   useEffect(() => {
     const fetchGallery = async () => {
@@ -55,7 +56,14 @@ const GalleryPage = () => {
       }
       setLoading(false);
     };
+    
+    const fetchSettings = async () => {
+      const { data } = await supabase.from('website_settings').select('*').single();
+      if (data) setSettings(data as WebsiteSettings);
+    };
+    
     fetchGallery();
+    fetchSettings();
   }, []);
 
   const featuredImage = images[0]; // Simplified feature image logic for now
@@ -87,7 +95,7 @@ const GalleryPage = () => {
     <>
       {/* Hero */}
       <section className="pt-28 md:pt-36 pb-20 bg-gradient-to-b from-sandalwood-900 via-maroon-900 to-sandalwood-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/164041/pexels-photo-164041.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center opacity-30" />
+        <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('${settings?.gallery_hero_bg || "https://images.pexels.com/photos/164041/pexels-photo-164041.jpeg?auto=compress&cs=tinysrgb&w=1920"}')` }} />
         <div className="absolute inset-0 bg-gradient-to-b from-sandalwood-900/60 via-transparent to-sandalwood-900" />
         <div className="absolute top-10 left-10 opacity-20"><MandalaSVG size={150} /></div>
         <div className="absolute bottom-10 right-10 opacity-15"><MandalaSVG size={180} /></div>

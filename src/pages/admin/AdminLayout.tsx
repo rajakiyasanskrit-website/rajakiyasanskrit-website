@@ -20,6 +20,7 @@ const menuItems = [
   { icon: Calendar, label: 'Events', path: '/main_box/events' },
   { icon: Images, label: 'Gallery', path: '/main_box/gallery' },
   { icon: Video, label: 'Videos', path: '/main_box/videos' },
+  { icon: Images, label: 'Site Images', path: '/main_box/hero-images' },
 ];
 
 export default function AdminLayout() {

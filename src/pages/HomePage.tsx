@@ -17,10 +17,8 @@ import {
   Star,
   ArrowRight,
   Calendar,
-  Image,
-  Newspaper,
-} from 'lucide-react';
-import { supabase, type Event, type Notice } from '../lib/supabase';
+import { Newspaper } from 'lucide-react';
+import { supabase, type Event, type Notice, type WebsiteSettings } from '../lib/supabase';
 
 // Decorative Elements
 const DiyaIcon = ({ className = '' }: { className?: string }) => (
@@ -90,14 +88,14 @@ const Section = ({ children, delay = 0 }: { children: React.ReactNode; delay?: n
   );
 };
 
-// Hero Section
-const HeroSection = () => {
+const HeroSection = ({ settings }: { settings: WebsiteSettings | null }) => {
   const [loaded, setLoaded] = useState(false);
   useEffect(() => setLoaded(true), []);
+  const bgUrl = settings?.home_hero_bg || "https://images.pexels.com/photos/163314/pexels-photo-163314.jpeg?auto=compress&cs=tinysrgb&w=1920";
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-sandalwood-900 via-maroon-900 to-sandalwood-900">
-      <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/163314/pexels-photo-163314.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center opacity-30" />
+      <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('${bgUrl}')` }} />
       <div className="absolute inset-0 bg-gradient-to-b from-sandalwood-900/40 via-transparent to-sandalwood-900/90" />
       <div className="absolute inset-0 bg-gradient-to-r from-maroon-900/50 via-transparent to-saffron-900/20" />
 
@@ -222,14 +220,14 @@ const QuickLinksSection = () => (
   </section>
 );
 
-// About Section
-const AboutSection = () => {
+const AboutSection = ({ settings }: { settings: WebsiteSettings | null }) => {
   const stats = [
     { number: '३०८', label: 'वर्ष इतिहास', icon: Building2 },
     { number: '१७७५', label: 'स्थापना (वि.सं.)', icon: Star },
     { number: '५०+', label: 'विद्यार्थी', icon: Users },
     { number: '८-१२', label: 'कक्षाहरू', icon: BookOpen },
   ];
+  const imgUrl = settings?.home_about_img || "https://images.pexels.com/photos/2382306/pexels-photo-2382306.jpeg?auto=compress&cs=tinysrgb&w=800";
 
   return (
     <section id="about" className="py-20 md:py-32 bg-gradient-to-b from-cream-50 via-sandalwood-50 to-cream-50 relative overflow-hidden">
@@ -256,7 +254,7 @@ const AboutSection = () => {
             <div className="relative">
               <div className="section-card p-4 gradient-border">
                 <div className="relative aspect-[4/3] rounded-xl overflow-hidden">
-                  <img src="https://images.pexels.com/photos/2382306/pexels-photo-2382306.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Gurukul Temple" className="w-full h-full object-cover" />
+                  <img src={imgUrl} alt="Gurukul Temple" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-sandalwood-900/60 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4">
                     <p className="font-devanagari text-cream-50 text-sm font-medium">राजकीय संस्कृत गुरुकुल, मटिहानी</p>
@@ -550,11 +548,21 @@ const ContactPreview = () => (
 
 // Main HomePage Component
 const HomePage = () => {
+  const [settings, setSettings] = useState<WebsiteSettings | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase.from('website_settings').select('*').single();
+      if (data) setSettings(data as WebsiteSettings);
+    };
+    fetchSettings();
+  }, []);
+
   return (
     <>
-      <HeroSection />
+      <HeroSection settings={settings} />
       <QuickLinksSection />
-      <AboutSection />
+      <AboutSection settings={settings} />
       <EventsPreview />
       <NoticesPreview />
       <ContactPreview />

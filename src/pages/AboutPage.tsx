@@ -9,6 +9,7 @@ import {
   Phone,
   ArrowRight,
 } from 'lucide-react';
+import { supabase, type WebsiteSettings } from '../lib/supabase';
 
 const MandalaSVG = ({ className = '', size = 100 }: { className?: string; size?: number }) => (
   <svg viewBox="0 0 100 100" width={size} height={size} className={`mandala-rotate ${className}`}>
@@ -49,6 +50,15 @@ const Section = ({ children, delay = 0 }: { children: React.ReactNode; delay?: n
 };
 
 const AboutPage = () => {
+  const [settings, setSettings] = useState<WebsiteSettings | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase.from('website_settings').select('*').single();
+      if (data) setSettings(data as WebsiteSettings);
+    };
+    fetchSettings();
+  }, []);
   const timeline = [
     { year: '१७७५', yearEn: '1775 BS', title: 'स्थापना', desc: 'राजा रणबहादुर शाहबाट राजकीय मान्यता प्राप्त। वेद शिक्षा र आचार्य परम्पराको सुरुवात।' },
     { year: '१९००', yearEn: '1843 AD', title: 'संस्कृत शिक्षा विस्तार', desc: 'व्याकरण, न्याय, र मीमांसा शास्त्रको अध्ययन सुरु।' },
@@ -61,7 +71,7 @@ const AboutPage = () => {
     <>
       {/* Hero */}
       <section className="pt-28 md:pt-36 pb-20 bg-gradient-to-b from-sandalwood-900 via-maroon-900 to-sandalwood-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/2382306/pexels-photo-2382306.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center opacity-25" />
+        <div className="absolute inset-0 bg-cover bg-center opacity-25" style={{ backgroundImage: `url('${settings?.about_hero_bg || "https://images.pexels.com/photos/2382306/pexels-photo-2382306.jpeg?auto=compress&cs=tinysrgb&w=1920"}')` }} />
         <div className="absolute inset-0 bg-gradient-to-b from-sandalwood-900/50 via-transparent to-sandalwood-900" />
         <div className="absolute top-10 left-10 opacity-20"><MandalaSVG size={150} /></div>
         <div className="absolute bottom-10 right-10 opacity-15"><MandalaSVG size={180} /></div>
@@ -90,7 +100,7 @@ const AboutPage = () => {
               <div className="relative">
                 <div className="section-card p-4 gradient-border">
                   <div className="relative aspect-[4/5] rounded-xl overflow-hidden">
-                    <img src="https://images.pexels.com/photos/789555/pexels-photo-789555.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Gurukul Heritage" className="w-full h-full object-cover" />
+                    <img src={settings?.about_heritage_img || "https://images.pexels.com/photos/789555/pexels-photo-789555.jpeg?auto=compress&cs=tinysrgb&w=800"} alt="Gurukul Heritage" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-sandalwood-900/70 via-transparent to-transparent" />
                     <div className="absolute bottom-6 left-6 right-6">
                       <p className="font-devanagari text-2xl font-bold text-cream-50">ऐतिहासिक विरासत</p>
